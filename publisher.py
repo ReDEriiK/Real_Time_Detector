@@ -8,7 +8,7 @@ TOPIC = "camera/frame"
 client = mqtt.Client()
 client.connect(BROKER, PORT)
 
-cap = cv2.VideoCapture("http://192.168.0.194:8080/video")
+cap = cv2.VideoCapture("http://192.168.0.166:8080/video")
 
 tick = 0
 
@@ -20,7 +20,7 @@ while True:
 
     tick += 1
 
-    if tick % 10 == 0:
+    if tick % 2 == 0:
         _, buffer = cv2.imencode(".jpg", frame)
         img_bytes = buffer.tobytes()
 
