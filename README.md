@@ -3,7 +3,7 @@
 > Image made by ChatGPT
  ## **Description**
 
-This project was made for a university class. The purpose was to make a real time detection application using a phone as an IP webcam, mqtt, mosquito and docker docker. The object detectionh model can be easily changed by adding a new class into the model folder. 
+This project was made for a university class. The purpose was to make a real time detection application using a phone as an IP webcam, mqtt, mosquito and docker docker. The object detection model can be easily changed by adding a new class into the model folder. 
 
 ## **To run the project**
 

@@ -1,20 +1,22 @@
+import time
 from flask import Flask, render_template, Response
 import cv2
 import numpy as np
 import threading
 import paho.mqtt.client as mqtt
 from models.blaze_face import setup_model, detect_face
+import os
 
 # --- Configuration ---
-BROKER = "localhost"
-PORT = 1883
-TOPIC = "camera/frame"
+BROKER = os.getenv('MQTT_BROKER_HOST', 'mosquitto')
+PORT = int(os.getenv('MQTT_BROKER_PORT', 1883))
+TOPIC = os.getenv('MQTT_TOPIC', 'camera/frame')
+client_id = f'receiver-{os.getpid()}'
+
 latest_frame = None
 
-# --- Model Setup ---
 model, processor = setup_model()
 
-# --- Flask App ---
 app = Flask(__name__)
 
 @app.route('/')
@@ -26,7 +28,6 @@ def video_feed():
     return Response(generate(),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
-# --- Frame Generator ---
 def generate():
     global latest_frame
     while True:
@@ -34,10 +35,13 @@ def generate():
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + latest_frame + b'\r\n')
 
-# --- MQTT Callbacks ---
 def on_connect(client, userdata, flags, rc):
-    print("Connected to MQTT broker with code:", rc)
-    client.subscribe(TOPIC)
+    if rc == 0:
+        print(f"Successfully connected to MQTT Broker at {BROKER}")
+        client.subscribe(TOPIC)
+        print(f"Subscribed to topic: {TOPIC}")
+    else:
+        print(f"Failed to connect, return code {rc}")
 
 def on_message(client, userdata, msg):
     global latest_frame
@@ -50,14 +54,34 @@ def on_message(client, userdata, msg):
         ret, jpeg = cv2.imencode('.jpg', image)
         if ret:
             latest_frame = jpeg.tobytes()
+    else:
+        print("No image received")
 
 def start_mqtt():
     print("Starting MQTT...")
-    client = mqtt.Client()
+    client = mqtt.Client(client_id=client_id)
     client.on_connect = on_connect
     client.on_message = on_message
-    client.connect(BROKER, PORT)
+
+    max_retries = 5
+    retries = 0
+    connected = False
+    while not connected and retries < max_retries:
+        try:
+            client.connect(BROKER, PORT, 60)
+            connected = True
+        except Exception as e:
+            retries += 1
+            print(f"Connection attempt  failed")
+            time.sleep(2)
+
+    if not connected:
+        print("Could not connect to MQTT broker after several retries. Exiting.")
+        exit(1)
+
+    print("Starting MQTT network loop...")
     client.loop_forever()
+
 
 # --- Main Entry ---
 if __name__ == '__main__':

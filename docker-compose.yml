@@ -1,9 +1,36 @@
 version: '3.8'
+
 services:
   mosquitto:
-    image: eclipse-mosquitto
-    container_name: mosquitto
+    image: eclipse-mosquitto:2.0
+    container_name: mqtt_mosquitto_broker
     ports:
       - "1883:1883"
     volumes:
-      - ./config:/mosquitto/config
+      - ./mosquitto/config:/mosquitto/config
+    command: mosquitto -c /mosquitto/config/mosquitto.conf
+    restart: unless-stopped
+
+  publisher:
+    build: ./publisher
+    container_name: mqtt_publisher
+    depends_on:
+      - mosquitto
+    environment:
+      - BROKER=mosquitto
+      - PORT=1883
+      - TOPIC=camera/frame
+    restart: on-failure
+
+  subscriber:
+    build: ./subscriber
+    container_name: mqtt_subscriber
+    depends_on:
+      - mosquitto
+    environment:
+      - BROKER=mosquitto
+      - PORT=1883
+      - TOPIC=camera/frame
+    ports:
+      - "5000:5000" 
+    restart: on-failure
