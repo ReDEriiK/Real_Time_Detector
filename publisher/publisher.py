@@ -27,7 +27,7 @@ client.loop_start()
 
 time.sleep(2)
 
-cap = cv2.VideoCapture("http://192.168.0.166:8080/video")
+cap = cv2.VideoCapture("http://192.168.0.194:8080/video")
 tick = 0
 try:
     while True:
